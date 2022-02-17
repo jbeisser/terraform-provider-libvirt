@@ -82,12 +82,16 @@ func (u *ConnectionURI) parseAuthMethods() []ssh.AuthMethod {
 
 func (u *ConnectionURI) dialSSH() (net.Conn, error) {
 
-	sshConfigFile, err := os.Open(os.ExpandEnv(defaultSSHConfigFile))
+	sshConfigFile := os.Getenv("TERRAFORM_SSH_CONFIG")
+	if sshConfigFile == "" {
+		sshConfigFile = defaultSSHConfigFile
+	}
+	sshConfFile, err := os.Open(os.ExpandEnv(sshConfigFile))
 	if err != nil {
 		log.Printf("[WARN] Failed to open ssh config file: %v", err)
 	}
 
-	sshcfg, err := ssh_config.Decode(sshConfigFile)
+	sshcfg, err := ssh_config.Decode(sshConfFile)
 	if err != nil {
 		log.Printf("[WARN] Failed to parse ssh config file: %v", err)
 	}
@@ -121,10 +125,11 @@ func (u *ConnectionURI) dialSSH() (net.Conn, error) {
 
 	username := u.User.Username()
 	if username == "" {
+		log.Printf("[DEBUG] host, %v", u.Host)
 		sshu, err := sshcfg.Get(u.Host, "User")
-		log.Printf("[DEBUG] SSH User: %v", sshu)
+		log.Printf("[DEBUG] ssh user: %v", sshu)
 		if err != nil {
-			log.Printf("[DEBUG] ssh user: system username")
+			log.Printf("[DEBUG] ssh user: using system username")
 			u, err := user.Current()
 			if err != nil {
 				return nil, fmt.Errorf("unable to get username: %v", err)
@@ -143,7 +148,15 @@ func (u *ConnectionURI) dialSSH() (net.Conn, error) {
 
 	port := u.Port()
 	if port == "" {
-		port = defaultSSHPort
+		sshp, err := sshcfg.Get(u.Host, "Port")
+		log.Printf("[DEBUG] ssh port: %v", sshp)
+		if err != nil {
+			log.Printf("[DEBUG] ssh port: Falling back to default ssh port")
+		}
+		if sshp == "" {
+			sshp = defaultSSHPort
+		}
+		port = sshp
 	}
 
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", u.Hostname(), port), &cfg)
