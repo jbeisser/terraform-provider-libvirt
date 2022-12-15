@@ -9,6 +9,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/kevinburke/ssh_config"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -18,6 +19,7 @@ const (
 	defaultSSHPort           = "22"
 	defaultSSHKeyPath        = "${HOME}/.ssh/id_rsa"
 	defaultSSHKnownHostsPath = "${HOME}/.ssh/known_hosts"
+	defaultSSHConfigFile     = "${HOME}/.ssh/config"
 	defaultSSHAuthMethods    = "agent,privkey"
 )
 
@@ -79,6 +81,21 @@ func (u *ConnectionURI) parseAuthMethods() []ssh.AuthMethod {
 }
 
 func (u *ConnectionURI) dialSSH() (net.Conn, error) {
+
+	sshConfigFile := os.Getenv("TERRAFORM_SSH_CONFIG")
+	if sshConfigFile == "" {
+		sshConfigFile = defaultSSHConfigFile
+	}
+	sshConfFile, err := os.Open(os.ExpandEnv(sshConfigFile))
+	if err != nil {
+		log.Printf("[WARN] Failed to open ssh config file: %v", err)
+	}
+
+	sshcfg, err := ssh_config.Decode(sshConfFile)
+	if err != nil {
+		log.Printf("[WARN] Failed to parse ssh config file: %v", err)
+	}
+
 	authMethods := u.parseAuthMethods()
 	if len(authMethods) < 1 {
 		return nil, fmt.Errorf("could not configure SSH authentication methods")
@@ -108,11 +125,18 @@ func (u *ConnectionURI) dialSSH() (net.Conn, error) {
 
 	username := u.User.Username()
 	if username == "" {
-		u, err := user.Current()
+		log.Printf("[DEBUG] host, %v", u.Host)
+		sshu, err := sshcfg.Get(u.Host, "User")
+		log.Printf("[DEBUG] ssh user: %v", sshu)
 		if err != nil {
-			return nil, err
+			log.Printf("[DEBUG] ssh user: using system username")
+			u, err := user.Current()
+			if err != nil {
+				return nil, fmt.Errorf("unable to get username: %v", err)
+			}
+			sshu = u.Username
 		}
-		username = u.Username
+		username = sshu
 	}
 
 	cfg := ssh.ClientConfig{
@@ -124,7 +148,15 @@ func (u *ConnectionURI) dialSSH() (net.Conn, error) {
 
 	port := u.Port()
 	if port == "" {
-		port = defaultSSHPort
+		sshp, err := sshcfg.Get(u.Host, "Port")
+		log.Printf("[DEBUG] ssh port: %v", sshp)
+		if err != nil {
+			log.Printf("[DEBUG] ssh port: Falling back to default ssh port")
+		}
+		if sshp == "" {
+			sshp = defaultSSHPort
+		}
+		port = sshp
 	}
 
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", u.Hostname(), port), &cfg)

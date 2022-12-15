@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.21.0
 	github.com/hooklift/iso9660 v1.0.0
+	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351
 	github.com/mattn/goveralls v0.0.2
 	github.com/stretchr/testify v1.7.2
 	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167
