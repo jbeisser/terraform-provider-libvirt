@@ -32,6 +32,7 @@ func TestAccLibvirtDomain_Basic(t *testing.T) {
 				Config: fmt.Sprintf(`
 				resource "libvirt_domain" "%s" {
 					name = "%s"
+					uuid = "2E0F4FDE-173F-45F5-9965-E1ADFF84EAEE"
 				}`, randomResourceName, randomDomainName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibvirtDomainExists("libvirt_domain."+randomResourceName, &domain),
@@ -41,6 +42,8 @@ func TestAccLibvirtDomain_Basic(t *testing.T) {
 						"libvirt_domain."+randomResourceName, "memory", "512"),
 					resource.TestCheckResourceAttr(
 						"libvirt_domain."+randomResourceName, "vcpu", "1"),
+					resource.TestCheckResourceAttr(
+						"libvirt_dmain."+randomResourceName, "uuid", "2E0F4FDE-173F-45F5-9965-E1ADFF84EAEE"),
 				),
 			},
 		},
