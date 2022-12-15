@@ -12,10 +12,10 @@ import (
 	"testing"
 
 	libvirt "github.com/digitalocean/go-libvirt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	libvirtxml "github.com/libvirt/libvirt-go-xml"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"libvirt.org/go/libvirtxml"
 )
 
 func TestAccLibvirtDomain_Basic(t *testing.T) {
